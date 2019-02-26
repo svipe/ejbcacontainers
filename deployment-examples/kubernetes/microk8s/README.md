@@ -49,10 +49,26 @@ which means that the latest version of the application will be used when the con
 
 ## Using the CLI
 
-As an alternative to the UI import, you could also use the CLI:
+As an alternative to the UI import, you could also use the CLI.
+
+### Create
 ```
 microk8s.kubectl create -f ejbca-ce-with-ingress-and-mariadb.yaml
 ```
+
+It is also possible to specify a direct URL to the YAML, if you trust that the to content of a location is a good idea to run and will be the same when `kubectl` downloads it.
+```
+microk8s.kubectl create -f https://github.com/primekeydevs/containers/raw/master/deployment-examples/kubernetes/microk8s/ejbca-ce-with-ingress-and-mariadb.yaml
+```
+
+### Check status
+
+Show deployed items:
+```
+microk8s.kubectl get all --namespace=pki-demo
+```
+
+### Clean up
 
 To clean up all the deployed items, run
 ```
