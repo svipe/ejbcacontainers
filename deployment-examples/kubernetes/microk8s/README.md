@@ -11,6 +11,7 @@ The scope of this example is to demonstrate:
 A highly available service in production would additionally use
 
 * EJBCA EE with 24/7 support by PrimeKey
+* Proper server side TLS certificate and support for authenticated management (using client TLS certificates or delegated to a different authentication provider)
 * redundant highly available hardened and optimized Kubernetes platform with pro-active health checking load balancers.
 * a redundant highly available hardened and optimized database like MariaDB Galera cluster.
 
