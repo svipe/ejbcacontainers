@@ -61,7 +61,8 @@ On Debian an installation of <https://microk8s.io/> v1.13.4 can look like the fo
 sudo apt-get install -y snapd
 sudo snap install core
 sudo snap install microk8s --classic
-microk8s.kubectl get all,ingress,secret,no --all-namespaces
+sudo snap alias microk8s.kubectl kubectl
+kubectl get all,ingress,secret,no --all-namespaces
 ```
 
 For this example we will enable a few basic addons:
@@ -71,25 +72,17 @@ microk8s.enable dns dashboard ingress
 
 Optionally, you can enable direct access to the dashboard on `https://testsystem.example.org:30443/` with [kubernetes-dashboard-nodeport.yaml](kubernetes-dashboard-nodeport.yaml)
 ```
-microk8s.kubectl create -f kubernetes-dashboard-nodeport.yaml
+kubectl create -f kubernetes-dashboard-nodeport.yaml
 ```
 
-Re-configure the default DNS servers used by the cluster with:
+Re-configure the default DNS servers used by the cluster to the host machine so `testsystem.example.org` will be resolvable when adding an Ingress later on with:
 ```
-KUBE_EDITOR="nano" microk8s.kubectl -n kube-system edit configmap kube-dns
-```
-and modify the line:
-```
-  upstreamNameservers: '["8.8.8.8", "8.8.4.4"]'
-```
-to the host machine so `testsystem.example.org` will be resolvable when adding an Ingress later on:
-```
-  upstreamNameservers: '["192.168.122.1"]'
+kubectl patch --namespace kube-system configmap kube-dns --patch '{"data":{"upstreamNameservers":"[\"192.168.122.1\"]"}}'
 ```
 
 Verify that `testsystem.example.org` is resolvable from the Ingress controller.
 ```
-microk8s.kubectl get pod --namespace=default
+kubectl get pod --namespace=default
 ```
 
 ```
@@ -99,7 +92,7 @@ nginx-ingress-microk8s-controller-d8dl4   1/1     Running   0          119s
 ```
 
 ```
-microk8s.kubectl exec nginx-ingress-microk8s-controller-d8dl4 -i -t -- bash -c 'ping -c 1 testsystem.example.org'
+kubectl exec nginx-ingress-microk8s-controller-d8dl4 -i -t -- bash -c 'ping -c 1 testsystem.example.org'
 ```
 
 
@@ -107,12 +100,12 @@ microk8s.kubectl exec nginx-ingress-microk8s-controller-d8dl4 -i -t -- bash -c '
 
 Start by installing the vanilla `cert-manager`:
 ```
-microk8s.kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.7/deploy/manifests/cert-manager.yaml
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.7/deploy/manifests/cert-manager.yaml
 ```
 
 Optional: Instead of accessing the ACME service running on the host by IP:port or DNS-name:port, we define a Service abstraction [service-pki-service.yaml](service-pki-service.yaml) so it can be reached by using `https://pki-service/ejbca/acme/directory`:
 ```
-microk8s.kubectl create -f service-pki-service.yaml
+kubectl create -f service-pki-service.yaml
 ```
 
 Note: It is important that the HTTPS server side certificate of the ACME service can be
@@ -127,12 +120,12 @@ sudo iptables -P FORWARD ACCEPT
 
 When the server side TLS certificate of `https://pki-service/ejbca/acme/directory` isn't trusted by the Kubernetes installation, we need to configure `cert-manager` to trust the issuing CA of this certificate. The CA Certificate can imported as a Secret [secret-acme-tls-ca.yaml](secret-acme-tls-ca.yaml):
 ```
-microk8s.kubectl create -f secret-acme-tls-ca.yaml
+kubectl create -f secret-acme-tls-ca.yaml
 ```
 
 `cert-manager` can then be reconfigured to trust this CA certificate for HTTPS connections used by the ACME protocol by referencing this Secret:
 ```
-KUBE_EDITOR="nano" microk8s.kubectl -n cert-manager edit deployment cert-manager
+KUBE_EDITOR="nano" kubectl -n cert-manager edit deployment cert-manager
 ```
 and add a mount of the CA certificate specified in `secret-acme-tls-ca.yaml`:
 ```
@@ -149,7 +142,7 @@ and add a mount of the CA certificate specified in `secret-acme-tls-ca.yaml`:
 
 Finally the ClusterIssuer [clusterissuer-ejbca-acme.yaml](clusterissuer-ejbca-acme.yaml) referencing the ACME service can be configured:
 ```
-microk8s.kubectl create -f clusterissuer-ejbca-acme.yaml
+kubectl create -f clusterissuer-ejbca-acme.yaml
 ```
 
 (A ClusterIssuer should according to <https://docs.cert-manager.io/en/latest/reference/clusterissuers.html> be able to issue certificate for all nodes in the cluster.)
@@ -161,14 +154,14 @@ As described earlier, the CA can resolve `testsystem.example.org` to the VM runn
 
 An explicit declaration of issuance would look like [cert-testsystem-example-org.yaml](cert-testsystem-example-org.yaml) and can be requested with:
 ```
-microk8s.kubectl create -f cert-testsystem-example-org.yaml
+kubectl create -f cert-testsystem-example-org.yaml
 ```
 and the progress can be followed by using `describe` on the resource. Note that the namespace of this certificate is different from the one `cert-manager` uses.
 
 
 If everything works so far you should be able to see that an account was created by the ClusterIssuer:
 ```
-microk8s.kubectl describe clusterissuer clusterissuer-ejbca-acme
+kubectl describe clusterissuer clusterissuer-ejbca-acme
 ```
 
 ```
@@ -186,7 +179,7 @@ Status:
 
 and that the certificate has been issued:
 ```
-microk8s.kubectl describe certificate cert-testsystem-example-org
+kubectl describe certificate cert-testsystem-example-org
 ```
 
 ```
@@ -221,13 +214,13 @@ In the EJBCA logs that registration of a new ACME account should also be visible
 By annotation an Ingress, we can now automatically create a TLS certificate from EJBCA to it. As a basic example the Kubernetes dashboard can now be exposed using an Ingress [kubernetes-dashboard-ingress.yaml](kubernetes-dashboard-ingress.yaml) with a TLS certificate issued by EJBCA.
 
 ```
-microk8s.kubectl create -f kubernetes-dashboard-ingress.yaml
+kubectl create -f kubernetes-dashboard-ingress.yaml
 ```
 
 In the Events log of the Ingress and referenced Certificate, the certificate creation operation is visible.
 ```
-microk8s.kubectl describe ingress --namespace=kube-system
-microk8s.kubectl describe certificate --namespace=kube-system cert-ingress-testsystem-example-org
+kubectl describe ingress --namespace=kube-system
+kubectl describe certificate --namespace=kube-system cert-ingress-testsystem-example-org
 ```
 
 ```
