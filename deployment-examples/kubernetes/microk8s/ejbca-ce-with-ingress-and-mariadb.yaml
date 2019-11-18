@@ -108,6 +108,8 @@ spec:
         env:
         - name: PROXY_HTTP_BIND
           value: "0.0.0.0"
+        - name: INITIAL_ADMIN
+          value: ";PublicAccessAuthenticationToken:TRANSPORT_ANY;"
         - name: DATABASE_JDBC_URL
           value: "jdbc:mysql://ejbca-database-service:3306/ejbca?characterEncoding=utf8"
         - name: DATABASE_USER
