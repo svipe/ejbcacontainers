@@ -2,6 +2,9 @@
 
 This is an example setup an EJBCA installation on <https://microk8s.io/> Kubernetes.
 
+* microk8s on mac hints <https://itnext.io/microk8s-on-macos-98f1de3aa63e>
+
+
 The scope of this example is to demonstrate:
 
 * the stateless nature of EJBCA containers in this 3 level setup.
